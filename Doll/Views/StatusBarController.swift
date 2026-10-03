@@ -148,7 +148,10 @@ class StatusBarController {
 
         let textWidth = (text ?? "")
             .width(withConstrainedHeight: defaultIconSize, font: .systemFont(ofSize: 14))
-        statusItem.length = defaultIconSize + textWidth
+        // Add breathing room because menu bar text rendering can be wider than raw glyph bounds.
+        let textHorizontalPadding: CGFloat = 12
+        let statusItemLengthForText = defaultIconSize + textWidth + textHorizontalPadding
+        statusItem.length = statusItemLengthForText
 
         // New notification comes in
         let newText = text ?? ""
@@ -171,7 +174,7 @@ class StatusBarController {
             let defaultIcon = monitoredAppIcon
             let adjustedIcon = (newText.isEmpty && AppSettings.grayoutIconWhenNothingComing) ? (defaultIcon.grayOut() ?? defaultIcon) : defaultIcon
             updateBadgeIcon(icon: adjustedIcon)
-            statusItem.length = defaultIconSize + textWidth
+            statusItem.length = statusItemLengthForText
             updateBadgeIcon(icon: adjustedIcon, size: CGSize(width: defaultIconSize, height: defaultIconSize))
             statusItem.button?.title = newText
         }
