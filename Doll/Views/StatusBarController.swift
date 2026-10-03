@@ -129,21 +129,6 @@ class StatusBarController {
         }
     }
 
-    func showPopover(popover: NSPopover? = nil) {
-        if let statusBarButton = statusItem.button {
-            popover?.show(relativeTo: statusBarButton.bounds, of: statusBarButton, preferredEdge: .maxY)
-            if let contentWindow = popover?.contentViewController?.view.window {
-                // A little hack to prevent popover shitup with menubar
-                // https://stackoverflow.com/a/35047661
-                contentWindow.parent?.removeChildWindow(contentWindow)
-            }
-        }
-    }
-
-    func hidePopover(popover: NSPopover? = nil) {
-        popover?.performClose(nil)
-    }
-
     func hideStatusBar() {
         statusItem.isVisible = false
     }
@@ -193,10 +178,6 @@ class StatusBarController {
 
         let newMessageCount = Int(newText) ?? 0
         if latestBadgeText != newText {
-            if AppSettings.showAlertInFullScreenMode {
-                tryShowTheNewNotificationPopover(newText: newText)
-            }
-
             let frontmostAppIsMonitoredApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier == monitoredApp?.bundleId
             if !frontmostAppIsMonitoredApp, AppSettings.isGiantBadgeEnabled(for: monitoredApp?.appName ?? "") {
                 // Don't show giant badge when message count is decreasing
@@ -280,17 +261,6 @@ class StatusBarController {
         giantBadgePanel.setIsVisible(false)
     }
 
-    func tryShowTheNewNotificationPopover(newText: String) {
-        if Utils.currentActiveWindowIsFullScreen {
-
-            let notificationPopover = createNotificationPopover(newText: newText)
-            showPopover(popover: notificationPopover)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-                self?.hidePopover(popover: notificationPopover)
-            }
-        }
-    }
-
     func destroy() {
         if let monitoredApp = monitoredApp {
             MonitorService.unObserve(appName: monitoredApp.appName)
@@ -300,26 +270,6 @@ class StatusBarController {
         }
     }
 
-    private func createNotificationPopover(newText: String) -> NSPopover {
-        let notificationPopover = NSPopover()
-        let textWidth = newText
-                .width(withConstrainedHeight: defaultIconSize, font: .systemFont(ofSize: 14))
-        let horizonPadding: CGFloat = 32
-        let verticalPadding: CGFloat = 16
-        notificationPopover.contentSize = NSSize(width: defaultIconSize + textWidth + horizonPadding, height: defaultIconSize + verticalPadding)
-        notificationPopover.behavior = .transient
-        notificationPopover.setValue(true, forKeyPath: "shouldHideAnchor")
-
-        let targetApp = monitoredApp
-        let view = NotificationView(icon: monitoredAppIcon ?? defaultIcon, badgeText: newText) {
-            if let monitoredAppName = targetApp?.appName {
-                MonitorService.openMonitoredApp(appName: monitoredAppName)
-            }
-        }
-        notificationPopover.contentViewController = NSHostingController(rootView: view)
-
-        return notificationPopover
-    }
 }
 
 extension String {
